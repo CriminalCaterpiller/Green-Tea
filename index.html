@@ -1,0 +1,973 @@
+<html>
+<body>
+<canvas id = "gameCanvas"></canvas>
+<style>
+body {
+background-color: "#333333"
+}
+</style>
+<script src = "rooms.js"></script>
+<script>
+
+displayC=document.getElementById("gameCanvas");
+displayCtx = displayC.getContext("2d");
+displayC.width = 500; displayC.height = 500;
+c = document.createElement("CANVAS");
+//c.width = 100; c.height = 100;
+//c.width = 64; c.height = 64;
+c.width = 128; c.height = 128;
+ctx = c.getContext("2d");
+ctx.imageSmoothingEnabled=false;
+displayCtx.imageSmoothingEnabled=false;
+//console.log(ctx);
+
+missleImg = new Image();
+missleImg.src = "missle.png";
+
+wpress = false; apress = false;
+spress = false; dpress = false;
+qpress = false; epress = false;
+rpress = false; rwaspress = false;
+mpress = false; mwaspress = false;
+spacepress = false; spacewaspress = false;
+interacted = false;
+
+document.addEventListener("keydown",function(e){
+//console.log(e);
+e.preventDefault();
+interacted = true;
+if (e.code == "KeyW" || e.code == "ArrowUp") 
+wpress = true;
+if (e.code == "KeyA" || e.code == "ArrowLeft") 
+apress = true;
+if (e.code == "KeyS" || e.code == "ArrowDown") 
+spress = true;
+if (e.code == "KeyD" || e.code == "ArrowRight") 
+dpress = true;
+if (e.code == "KeyQ") qpress = true;
+if (e.code == "KeyE") epress = true;
+if (e.code == "KeyR") rpress = true;
+if (e.code == "KeyM") mpress = true;
+if (e.code == "Space" ||
+    e.code == "KeyP"||
+    e.code == "KeyQ"||
+    e.code == "KeyE") spacepress = true;
+if (e.code == "ControlLeft") cntlPress = true;
+});
+
+document.addEventListener("keyup",function(e){
+//console.log(e);
+e.preventDefault();
+interacted = true;
+if (e.code == "KeyW" || e.code == "ArrowUp") 
+wpress = false;
+if (e.code == "KeyA" || e.code == "ArrowLeft") 
+apress = false;
+if (e.code == "KeyS" || e.code == "ArrowDown") 
+spress = false;
+if (e.code == "KeyD" || e.code == "ArrowRight") 
+dpress = false;
+if (e.code == "KeyQ") qpress = false;
+if (e.code == "KeyE") epress = false;
+if (e.code == "KeyR") rpress = false;
+if (e.code == "KeyM") mpress = false;
+if (e.code == "Space" ||
+    e.code == "KeyP"||
+    e.code == "KeyQ"||
+    e.code == "KeyE") spacepress = false;
+if (e.code == "ControlLeft") cntlPress = false;
+});
+
+function hitTestRectCoords(x1, y1, w1, h1, x2, y2, w2, h2){
+if(w1 > 0 && w2 > 0 && h1 > 0 && h2 > 0 &&
+   x1 < x2 + w2 && x2 < x1 + w1 &&
+   y1 < y2 + h2 && y2 < y1 + h1)
+return true;
+return false;
+}
+
+function hitTestRect(obj1, obj2){
+return hitTestRectCoords(obj1.x,obj1.y,obj1.w,obj1.h,
+    obj2.x,obj2.y,obj2.w,obj2.h);
+}
+
+collideRect = function(obj1,obj2){
+if (hitTestRectCoords(
+obj1.x, obj1.y, obj1.w, obj1.h,
+obj2.x, obj2.y, obj2.w, obj2.h)){
+this.xPen = 0; this.yPen = 0;
+if (obj1.x+obj1.w/2<obj2.x+obj2.w/2){
+xPen = obj1.x + obj1.w - obj2.x;
+}else{
+xPen = obj2.x + obj2.w - obj1.x;
+}
+if (obj1.y+obj1.h/2<obj2.y+obj2.h/2){
+yPen = obj1.y + obj1.h - obj2.y;
+}else{
+yPen = obj2.y + obj2.h - obj1.y;
+}
+if (xPen > yPen){
+if (obj1.y+obj1.h/2>obj2.y+obj2.h/2){
+if (obj1.yVel < 0) obj1.yVel = 1;
+obj1.y += yPen;
+}else{
+if (obj1.yVel > 0) obj1.yVel = 1;
+obj1.y -= yPen;
+}}else{
+obj1.xVel = 0;
+if (obj1.x+obj1.w/2>obj2.x+obj2.w/2){
+obj1.x += xPen;
+}else{
+obj1.x -= xPen;
+}}}}
+
+crossSlopes = function(line1,line2){
+fPoint = {x:0,y:0};
+slope1 = (line1.y2-line1.y1)/
+         (line1.x2-line1.x1);
+if (slope1 == Infinity) slope1 = 0;
+slope2 = (line2.y2-line2.y1)/
+         (line2.x2-line2.x1);
+if (slope2 == Infinity) slope2 = 0;
+yInt1 = line1.y1 - line1.x1 * slope1;
+yInt2 = line2.y1 - line2.x1 * slope2;
+fPoint.x = (yInt2-yInt1)/(slope1-slope2);
+fPoint.y = slope1*fPoint.x + yInt1;
+return fPoint;
+}
+
+lineInLine = function(line1,line2){
+f = true;
+fpoint = crossSlopes(line1,line2);
+startX = line1.x1; endX = line1.x2;
+startY = line1.y1; endY = line1.y2;
+if(endX<startX){startX=line1.x2;endX=line1.x1;}
+if(endY<startY){startY=line1.y2;endY=line1.y1;}
+if(!(startX<fpoint.x&&fpoint.x<endX&&
+     startY<fpoint.y&&fpoint.y<endY)) f=false;
+startX = line2.x1; endX = line2.x2;
+startY = line2.y1; endY = line2.y2;
+if(endX<startX){startX=line2.x2;endX=line2.x1;}
+if(endY<startY){startY=line2.y2;endY=line2.y1;}
+if(!(startX<fpoint.x&&fpoint.x<endX&&
+    startY<fpoint.y&&fpoint.y<endY)) f=false;
+return f;
+}
+
+drawLine = function(Line1,line2){
+ctx.beginPath();
+ctx.moveTo(x1,y1);
+ctx.lineTo(x2,y2);
+ctx.stroke();
+displayCtx.drawImage(
+c,0,0,displayC.width,displayC.height);
+}
+
+fov=Math.PI;
+
+drawWall = function(walls,room){
+if (level > 9 && level < 15) wallImg = wall3Img;
+else if (level >= 15) wallImg = wall2Img;
+else {
+wallImg = wallImg;
+}
+drawLines = new Array(c.width);
+angle = cameraA;
+for (i = 0; i < room.walls.length; i++){
+wall = room.walls[i];
+wx1=wall.x1-cameraX; wy1=wall.y1-cameraY;
+wx2=wall.x2-cameraX; wy2=wall.y2-cameraY;
+z1 = rcos*wx1+rsin*wy1;
+z2 = rcos*wx2+rsin*wy2;
+x1 = rsin*wx1-rcos*wy1; 
+x2 = rsin*wx2-rcos*wy2; 
+dx1 = 0; dx2 = 0; dy1 = 0; dy2 = 0;
+if((z1<0 || z2<0) && !(z1<0 && z2<0)){
+crossPointX = 0; crossPointY = 0;
+slope1 = Math.sin(angle+Math.PI/2)/
+Math.cos(angle+Math.PI/2);
+slope2 = (wy1-wy2)/(wx1-wx2);
+if (slope1==0) slope1 = 0.001;
+if (slope2==0) slope2 = 0.001;
+if (slope1==Infinity) slope1 = c.height*10;
+if (slope2==Infinity) slope2 = c.height*10;
+if (slope1==-Infinity) slope1 = -c.height*10;
+if (slope2==-Infinity) slope2 = -c.height*10;
+crossPointX = (wall.y1-cameraY+slope1*cameraX-slope2*wall.x1)/(slope1-slope2);
+crossPointY = 
+(crossPointX-cameraX)*slope1+cameraY;
+crossPointX-=cameraX; crossPointY-=cameraY;
+if (z1 < 0){
+z1 = 0.001;
+x1 = rsin*crossPointX-rcos*crossPointY;
+}
+if (z2 < 0){
+z2 = 0.001;
+x2 = rsin*crossPointX-rcos*crossPointY;
+}}
+if (z1>0||z2>0){
+dx1 = -x1*c.height/z1; dx2 = -x2*c.height/z2;
+dy1 = c.height/z1*10; dy2 = c.height/z2*10;
+if (dx1 > dx2){
+tempdx1 = dx1; tempdy1 = dy1;
+dx1 = dx2; dy1 = dy2;
+dx2 = tempdx1; dy2 = tempdy1;
+}
+slope = (dy2-dy1)/(dx2-dx1);
+if (dx1 < -c.width/2) {
+dx1 = -c.width/2;
+dy1 = slope*(-dx2-c.width/2)+dy2;
+}
+if (dx2 > c.width/2){
+dx2 = c.width/2;
+dy2 = slope*(-dx1+c.width/2)+dy1; 
+}
+}
+for (x = dx1; x < dx2; x++){
+drawHeight = (slope*(x-dx1)+dy1);
+index = Math.floor(x+c.width/2);
+if (drawLines[index] == undefined ||
+drawLines[index][1] < drawHeight)
+drawLines[index] = [Math.floor(x+c.width/2),
+Math.floor(drawHeight),false,wall.img];
+}
+ctx.globalAlpha = 1;
+}
+bools = new Array(room.entitys.length);
+for (i = 0; i < bools.length; i++)
+bools[i] = false;
+tempEnemys = new Array(room.entitys.length);
+for (x = 0; x < tempEnemys.length; x++){
+index = undefined;
+for (i = 0; i < room.entitys.length; i++){
+if (bools[i] == false && 
+    room.entitys[i] != undefined){
+if (index == undefined ||
+room.entitys[i].drawHeight<room.entitys[index].drawHeight){
+index = i;
+}}}
+tempEnemys[x] = room.entitys[index];
+bools[index] = true;
+}
+//tempEnemys = enemys;
+tempLines = new Array(c.width);
+for (i = 0; i < tempLines.length; i++){
+index = undefined;
+for (e = 0; e < drawLines.length; e++){
+if (drawLines[e]!=undefined&&!drawLines[e][2]){
+if (index == undefined ||
+drawLines[e][1]<drawLines[index][1])
+index = e;
+}}
+if (drawLines[index]!=undefined){
+tempLines[i] = [
+drawLines[index][0],drawLines[index][1],
+undefined,undefined];
+drawLines[index][2] = true;
+tempLines[i][3] = drawLines[index][3];
+if (i == 0) minHeight = drawLines[index][1];
+maxHeight = drawLines[index][1];
+}}
+drawLines = tempLines;
+
+for (i = 0; i < tempEnemys.length; i++){
+if (tempEnemys[i]!=undefined){
+if (tempEnemys[i].drawHeight<minHeight){
+tempEnemys[i].display(); 
+}else if (tempEnemys[i].drawHeight<maxHeight)
+tempEnemys[i].between = true;
+else 
+tempEnemys[i].between = false;
+}}
+for (x = 0; x < c.width; x++){
+if (drawLines[x]!=undefined){
+ctx.globalAlpha = 1;
+ctx.fillStyle = "#222222";
+ctx.fillRect(Math.floor(drawLines[x][0]),
+c.height/2-drawLines[x][1],1,drawLines[x][1]*2);
+ctx.globalAlpha=
+//.5;
+Math.abs(drawLines[x][1])/c.height+.7;
+drawHeight = Math.floor(drawLines[x][1]);
+ctx.drawImage(wallImg,
+Math.floor(drawLines[x][0]),
+c.height/2-drawHeight,1,drawHeight*2);
+for (i = 0; i < tempEnemys.length; i++){
+if (tempEnemys[i] != undefined &&
+tempEnemys[i].between &&
+tempEnemys[i].drawHeight>=drawLines[x][1]){
+if (drawLines[x+1]!=undefined&&
+tempEnemys[i].drawHeight<=drawLines[x+1][1]){
+tempEnemys[i].display(); 
+}}}
+}
+} 
+for (i = 0; i < tempEnemys.length; i++){
+if(tempEnemys[i] != undefined && 
+!tempEnemys[i].betweend && 
+tempEnemys[i].drawHeight>maxHeight)
+tempEnemys[i].display();
+}
+ctx.globalAlpha = 1;
+}
+
+blastC = document.createElement("CANVAS");
+blastC.width = 500; blastC.height = 500;
+blastCtx = blastC.getContext("2d");
+
+blastCtx.fillStyle = "#e8f0a0";
+blastCtx.beginPath();
+blastCtx.arc(250,250,200,0,Math.PI*2);
+blastCtx.fill();
+
+bloodC = document.createElement("CANVAS");
+bloodC.width = 500; bloodC.height = 500;
+bloodCtx = bloodC.getContext("2d");
+//*
+bloodCtx.fillStyle = "#b03030";
+bloodCtx.beginPath();
+for (i=0; i<30; i++){
+bloodCtx.arc(
+250+Math.sin(i*61)*35,
+250+Math.sin(i*125)*35,
+15+Math.cos(i*20)*10,0,Math.PI*2);
+}
+bloodCtx.fill();
+for (i=0; i<45; i++){
+bloodCtx.translate(250,250);
+bloodCtx.rotate(Math.cos(i*7.1)*2112663);
+bloodCtx.beginPath();
+bloodCtx.scale(5,1);
+bloodCtx.arc(20+Math.sin(i)*10,0,4+Math.cos(i*10)*2,0,Math.PI*2);
+bloodCtx.scale(1/(5),1);
+bloodCtx.fill();
+bloodCtx.rotate(-Math.cos(i*7.1)*2112663);
+bloodCtx.translate(-250,-250);
+}
+
+floorC = document.createElement("canvas");
+floorCtx = floorC.getContext("2d");
+floorC.width=c.width; floorC.height=c.height;
+flatC = document.createElement("canvas");
+flatC.width = 100; flatC.height = 100;
+flatCtx = flatC.getContext("2d");
+flatData = flatCtx.getImageData(0,0,flatC.width,flatC.height).data;
+floorData = ctx.createImageData(c.width,c.height);
+
+for (x=0;x<100;x++){
+for (y=0;y<100;y++){
+sound = Math.floor(Math.random()*20);
+flatCtx.fillStyle = "rgb("+
+(128+sound)+","+
+(192+sound)+","+
+(192+sound)+")";
+flatCtx.fillRect(x,y,1,1);
+}}
+//*
+flatData = flatCtx.getImageData(0,0,flatC.width,flatC.height).data;
+//*/
+
+flatUpdate = true;
+skyf = 0;
+drawFloor = function(room){
+if (skyf > 1) skyf = 0;
+for (y = c.height/2; y < c.height; y++){
+fixy = y-c.height/2;
+dstz = c.height/fixy;
+for (x = 0; x < c.width; x++){
+dstx = (x-c.width/2)/fixy;
+drwx = Math.floor((rsin*dstz+rcos*dstx+cameraY/10)*10);
+drwz = Math.floor((rcos*dstz-rsin*dstx+cameraX/10)*10);
+drwx = drwx-Math.floor(drwx/100)*100;
+drwz = drwz-Math.floor(drwz/100)*100;
+index = (x+y*c.width)*4; 
+flatIndex = (drwz+drwx*flatC.width)*4;
+floorData.data[index  ] = flatData[flatIndex  ];
+floorData.data[index+1] = flatData[flatIndex+1];
+floorData.data[index+2] = flatData[flatIndex+2];
+floorData.data[index+3] = 
+//255;
+Math.floor(y-c.height/2)*500/c.height+150;
+}
+}
+floorCtx.putImageData(
+floorData,0,0);
+ctx.drawImage(floorC,0,0,c.width,c.height);
+//0,0,c.width,c.height);
+//*/
+}
+
+getLine = function(obj,target,obs){
+//obj.x+=obj.w/2; obj.y+=obj.h/2;
+//target.x+=target.w/2; target.y+=target.h/2;
+slope=(target.y-obj.y)/(target.x-obj.x);
+line = {x1:obj.x,y1:obj.y,x2:target.x,y2:target.y};
+x2=target.x; y2=target.y;
+for (i = 0; i < obs.length; i++){
+obs[i].x-=target.size;   obs[i].y-=target.size;
+obs[i].w+=target.size*2; obs[i].h+=target.size*2;
+for (e = 0; e < 4; e++){
+if (e == 0){
+tempX=obs[i].x; 
+tempY=slope*(tempX-obj.x)+obj.y; 
+tempN=tempY; minN=obs[i].y; maxN=minN+obs[i].h;
+} else if (e == 1) {
+tempY=obs[i].y; 
+tempX=1/slope*(tempY-obj.y)+obj.x;
+tempN=tempX; minN=obs[i].x; maxN=minN+obs[i].w;
+} else if (e == 2){
+tempX=obs[i].x+obs[i].w;
+tempY=slope*(tempX-obj.x)+obj.y; 
+tempN=tempY; minN=obs[i].y; maxN=minN+obs[i].h;
+} else if (e == 3){
+tempY=obs[i].y+obs[i].h;
+tempX=1/slope*(tempY-obj.y)+obj.x; 
+tempN=tempX; minN=obs[i].x; maxN=minN+obs[i].w;
+}
+if ((Math.abs(tempX-obj.x) < Math.abs(x2-obj.x) ||
+     Math.abs(tempY-obj.y) < Math.abs(y2-obj.y))&&
+  (obj.x < tempX && tempX < target.x ||
+     obj.x > tempX && tempX > target.x ||
+   obj.y < tempY && tempY < target.y ||
+     obj.y > tempY && tempY > target.y) &&
+     tempN > minN && tempN < maxN) {
+x2 = tempX; y2 = tempY;
+}}
+obs[i].x+=target.size;   obs[i].y+=target.size;
+obs[i].w-=target.size*2; obs[i].h-=target.size*2;
+}
+//obj.x-=obj.w/2; obj.y-=obj.h/2;
+//target.x-=target.w/2; target.y-=target.h/2;
+return {x:x2,y:y2};
+}
+
+Entity = function(){
+this.x=125;this.y=125;
+this.w=1; this.h=1;
+this.drawHeight=0;this.drwx=0;this.drwz=0;
+this.size = 1;
+this.dead = false;
+this.img=new Image();
+this.img.src = "black dude.png";
+this.loop=function(){
+this.drwz = 
+rsin*(cameraY-this.y)+
+rcos*(cameraX-this.x);
+this.drwx = 
+rsin*(cameraX-this.x)-
+rcos*(cameraY-this.y);
+this.drwx=this.drwx/this.drwz*c.width; 
+this.drawHeight=-c.height/this.drwz*10
+}
+this.update = function(){}
+this.display=function(){
+ctx.globalAlpha = 1;
+ctx.globalAlpha = this.alpha;
+if (this.drwz < 0){
+if (this.imgX != undefined)
+ctx.drawImage(this.img,
+this.imgX,this.imgY,this.imgW,this.imgH,
+c.width/2-this.drawHeight*this.size-this.drwx,
+c.height/2-this.drawHeight*this.size,
+this.drawHeight*2*this.size,
+this.drawHeight*2*this.size);
+else 
+ctx.drawImage(this.img,
+c.width/2-this.drawHeight*this.size-this.drwx,
+c.heigh/2-this.drawHeight*this.size,
+this.drawHeight*2*this.size,
+this.drawHeight*2*this.size);
+}
+ctx.globalAlpha = 1;
+}}
+
+projectileInEnemy = function(proj,obj){
+if (lineInLine(
+{x1:proj.x,y1:proj.y,x2:proj.oldx,y2:proj.oldy},
+{x1:obj.x-Math.cos(player.a+Math.PI/2)*10,
+ y1:obj.y-Math.sin(player.a+Math.PI/2)*10,
+ x2:obj.x+Math.cos(player.a+Math.PI/2)*10,
+ y2:obj.y+Math.sin(player.a+Math.PI/2)*10}))
+return true; return false; }
+
+projectileInWall = function(proj,obj){
+if (lineInLine({x1:proj.x,y1:proj.y,
+x2:proj.oldx,y2:proj.oldy},obj))
+return true;
+return false;
+}
+
+cameraX = 0; cameraY = 0; cameraZ = 0;
+cameraA = .0001;
+
+rcos = 0; rsin = 0;
+
+closestEntity = function(entitys){	
+tempEntity = undefined;
+for (i=0; i<entitys.length; i++){
+if (entitys[i]!=undefined){
+entitys[i].dist = Math.sqrt(
+Math.pow(entitys[i].x - player.x,2)+
+Math.pow(entitys[i].y - player.y,2));
+if (!entitys[i].dead){
+if (tempEntity == undefined)
+tempEntity = i;
+if (entitys[i].dist < entitys[tempEntity].dist)
+tempEntity = i;
+}}}
+return tempEntity;
+}
+
+update = function(){}
+
+collideBlocks = function(obj){
+for (i=0; i<room.blocks.length; i++){
+obj.x-=obj.w/2; obj.y-=obj.h/2; 
+collideRect(obj,room.blocks[i]);
+obj.x+=obj.w/2; obj.y+=obj.h/2; 
+}
+}
+
+createWalls = function(room){
+room.walls = new Array(room.blocks.length*4);
+for (i = 0; i < room.blocks.length; i++){
+room.walls[i*4  ] = {img:wallImg,
+x1:room.blocks[i].x,y1:room.blocks[i].y-.0000001,
+x2:room.blocks[i].x+room.blocks[i].w,y2:room.blocks[i].y};
+room.walls[i*4+1] = {img:wallImg,
+x1:room.blocks[i].x-.0000001,y1:room.blocks[i].y,
+x2:room.blocks[i].x,y2:room.blocks[i].y+room.blocks[i].h};
+room.walls[i*4+2] = {img:wallImg,
+x1:room.blocks[i].x,y1:room.blocks[i].y+room.blocks[i].h,
+x2:room.blocks[i].x+room.blocks[i].w,y2:room.blocks[i].y+room.blocks[i].h-.0000001};
+room.walls[i*4+3] = {img:wallImg,
+x1:room.blocks[i].x+room.blocks[i].w,y1:room.blocks[i].y,
+x2:room.blocks[i].x+room.blocks[i].w-.0000001,y2:room.blocks[i].y+room.blocks[i].h};
+}
+} 	
+
+wallImg = document.createElement("CANVAS");
+wallImg.width = 1; wallImg.height = 20;
+wallCtx = wallImg.getContext("2d");
+wallCtx.fillStyle = "#888888";
+wallCtx.fillRect(0,0,1,20);
+wallCtx.fillStyle = "#77a0a0";
+wallCtx.fillRect(0,0,1,4);
+wallCtx.fillStyle = "#505050";
+wallCtx.fillRect(0,8,1,10);
+wallCtx.fillStyle = "#c8c8c8";
+wallCtx.fillRect(0,10,1,3);
+wallCtx.globalAlpha = .9;
+wallCtx.fillStyle = "#e0c070";
+wallCtx.fillRect(0,4,1,20);
+
+//*
+deathDisplay = function(obj){
+obj.img.src = "death.png";
+if (obj.deathFrame == undefined) 
+obj.deathFrame = 0;
+if (obj.deathFrame < 4) obj.deathFrame+=.3;
+obj.imgX = Math.floor(obj.deathFrame)*64; 
+obj.imgY = 0;
+}
+//*/
+
+/*
+deathDisplay = function(obj){
+obj.imgX = Infinity;
+}
+*/
+
+createPlayer = function(){
+player = {
+x:150,y:150,w:8,h:8,a:.001,f:0,health:2,deathTimer:20,missles:0,dead:false,	
+update:function(room){
+if (this.iframe > 0) this.iframe--;
+if (this.health > 0){
+if (wpress){
+this.x+=Math.cos(cameraA)*1;
+this.y+=Math.sin(cameraA)*1;
+}
+if (spress){
+this.x-=Math.cos(cameraA)*1;
+this.y-=Math.sin(cameraA)*1;	
+}
+if (wpress || spress) {
+this.f+=.1;
+}
+else this.f = 0;
+if (this.f >= 4) this.f = 0;
+}
+if (apress) cameraA -= .05;
+if (dpress) cameraA += .05;
+room.playerEntity.imgX = Math.floor(this.f)*64;
+room.playerEntity.imgY=0;
+room.playerEntity.imgW=64; 
+room.playerEntity.imgH=64;
+if (this.health==2) {
+room.playerEntity.imgY = 0;
+} else if (this.health==1) {
+room.playerEntity.imgY = 64;
+}
+else if (this.health<=0) {
+this.deathTimer--; 
+deathDisplay(room.playerEntity);
+}
+if (this.deathTimer <=0) this.dead = true;
+spacewaspress = spacepress;
+while (cameraA > Math.PI*2) cameraA -= Math.PI*2;
+while (cameraA <= 0) cameraA += Math.PI*2;
+imgA = cameraA+0.1-this.a;
+while (imgA > Math.PI*2) imgA -= Math.PI*2;
+while (imgA <= 0) imgA += Math.PI*2;
+cameraX = this.x-Math.cos(cameraA)*30;
+cameraY = this.y-Math.sin(cameraA)*30;
+point = getLine(this,
+{x:cameraX,y:cameraY,size:2},room.blocks);
+cameraX = point.x; cameraY = point.y;
+room.playerEntity.alpha = 
+(c.height*1.1-room.playerEntity.drawHeight/6)/c.height;
+},
+iframe:0,
+hurt:function(room){
+if (!this.dead)
+room.createBlood(this);
+this.health--;
+}}
+return player;
+}
+
+createBomb = function(x,y){
+bomb = new Entity();
+bomb.x = x; bomb.y = y;
+bomb.w = 7; bomb.h = 7;
+bomb.r = 30; bomb.f = 0;
+bomb.dudef = 0; 
+bomb.xVel=0; bomb.yVel=0;
+bomb.frame = 0; bomb.hp = 200;
+bomb.imgX = 0; bomb.imgY = 0;
+bomb.imgW = 32; bomb.imgH = 32;
+bomb.size = 2;
+bomb.img = new Image();
+bomb.img.src = "bomb.png";	
+bomb.dead = false;
+bomb.exploading = false;
+bomb.target = undefined;
+bomb.equipSound = new Audio();
+bomb.equipSound.src = "burning.wav";
+bomb.equipSound.pause();
+bomb.update = function(room,targets){
+this.x+=this.xVel; this.y+=this.yVel;
+this.equipSound.volume = volume;
+if (this.wasHitting == undefined) {
+this.wasHitting = new Array(targets.length);
+for (i=0; i<this.wasHitting.length; i++)
+this.wasHitting[i] = false;
+}
+this.x+=this.xVel; this.y+=this.yVel;
+this.x-=4; this.y-=4;
+this.x-=5; this.y-=5; this.w+=10; this.h+=10;
+for (t=0; t<targets.length; t++){
+if (hitTestRect(this,targets[t])){
+this.expload(targets,room);
+}}
+this.x+=5; this.y+=5; this.w-=10; this.h-=10;
+for (t=0; t<room.blocks.length; t++){
+if (hitTestRect(this,room.blocks[t])){
+this.expload(targets,room);
+if (!this.exploading) {this.x-=this.xVel; this.y-=this.yVel;}
+}}
+this.x+=4; this.y+=4;
+bomb.imgX = 0; bomb.imgY = 0;
+bomb.imgW = 128; bomb.imgH = 128;
+if (this.exploading) {
+this.imgY = 128;
+this.f+=.2;
+this.imgX = Math.floor(this.f)*128;
+if (this.f >= 4) {
+this.x=Infinity; this.y=Infinity;
+}
+} else {
+if (interacted && this.x!=Infinity) this.equipSound.play();
+this.dudef+=.3;
+if (this.dudef >= 2) this.dudef = 0;
+this.imgX = Math.floor(this.dudef)*128;
+}
+}
+bomb.expload = function(targets,room){
+this.equipSound.pause();
+if (!this.exploading){
+this.xVel=0; this.yVel=0;
+splosionSound.volume = volume*2;
+splosionSound.play();
+for (t=0; t<targets.length; t++){
+if (Math.sqrt(
+Math.pow(targets[t].x-this.x,2)+
+Math.pow(targets[t].y-this.y,2))<this.r)
+targets[t].hurt(room);
+}
+this.f = 1;
+this.exploading = true;
+}}
+return bomb;
+}
+
+createExit = function(x,y){
+exit = new Entity();
+exit.x = x; exit.y = y;
+exit.w = 8; exit.h = 8;
+exit.img = new Image();
+exit.img.src = "teleporter.png";
+exit.imgX = 0; exit.imgY = 0;
+exit.imgW = 32; exit.imgH = 32;
+exit.f = 0;
+exit.size = 1.1;
+exit.update = function(){
+this.f+=.2;
+if (this.f >= 4) this.f = 0;
+this.imgX = Math.floor(this.f)*32;
+}
+return exit;
+}
+
+createRock = function(x,y){
+rock = new Entity();
+rock.x = x; rock.y = y;
+rock.w = 8; rock.h = 8;
+rock.img.src = "rock.png";
+rock.imgX = 0; rock.imgY = 0;
+rock.imgW = 64; rock.imgH = 64;
+rock.dead = false; rock.f = 0;
+rock.size = 1.1;
+rock.audio = new Audio();
+rock.audio.src = "rock.wav";
+rock.hurt = function(){
+if (!this.dead) this.audio.play();
+this.dead = true;
+}
+rock.update = function(room){
+this.audio.volume = volume/2;
+if (this.dead){
+if (this.f < 3) this.f+=.2;
+else this.w = -1;
+this.imgX = Math.floor(this.f)*64;
+}}
+return rock;
+}
+
+createFire = function(x,y){
+fire = new Entity();
+fire.x = x; fire.y = y;
+fire.w = 8; fire.h = 8;
+fire.xVel = 0; fire.yVel=0;
+fire.img.src = "fire.png";
+fire.imgX = 0; fire.imgY = 0;
+fire.imgW = 64; fire.imgH = 64;
+fire.dead = false; fire.f = 0;
+fire.size = 1.1;
+fire.firef = 0;
+return fire;
+}
+
+createCenturion = function(x,y){
+enemy = new Entity();
+enemy.x = x; enemy.y = y;
+enemy.w = 8; enemy.h = 8;
+enemy.img.src = "centurion.png";
+enemy.imgX = 0; enemy.imgY = 0;
+enemy.imgW = 64; enemy.imgH = 64;
+enemy.dead = false; enemy.f = 0;
+enemy.size = 1.1;
+enemy.timer = 0;
+enemy.audio = new Audio();
+enemy.audio.src = "rock.wav";
+enemy.a = -Math.PI;
+enemy.fires = new Array(10);
+for (f=0; f<enemy.fires.length; f++){
+enemy.fires[f] = createFire(Infinity,0);
+}
+enemy.hit = function(obj){
+for (f=0; f<this.fires.length; f++){
+if (hitTestRect(obj,this.fires[f])) obj.dead = true;
+}
+}
+enemy.hurt = function(){
+if (!this.dead) this.audio.play();
+this.dead = true;
+}
+enemy.update = function(room){
+if (!this.dead) this.timer++;
+//console.log(this.timer);
+if (this.timer > 50) {
+for (f=0; f<this.fires.length; f++){
+if (this.fires[f].x==Infinity){
+this.fires[f] = createFire(this.x,this.y);
+this.fires[f].xVel = -Math.cos(this.a);
+this.fires[f].yVel = -Math.sin(this.a);
+f=this.fires.length;
+}}
+this.timer = 0;
+}
+for (f=0; f<this.fires.length; f++){
+//console.log(this.fires[f]);
+if (this.fires[f].x!=Infinity){
+this.fires[f].f+=.25; if (this.fires[f].f>=4) this.fires[f].f=0;
+this.fires[f].imgX=Math.floor(this.fires[f].f)*64;
+for (b=0; b<room.blocks.length; b++){
+if (hitTestRect(this.fires[f],room.blocks[b]))
+this.fires[f].x=Infinity;
+}
+this.fires[f].x+=this.fires[f].xVel;
+this.fires[f].y+=this.fires[f].yVel;
+}}
+this.audio.volume = volume/2;
+if (this.dead){
+this.imgY = 64;
+if (this.f < 4) this.f+=.2;
+else this.w = -1;
+this.imgX = Math.floor(this.f)*64;
+} else {
+this.imgX = Math.floor(
+((cameraA-this.a+.8)-
+Math.floor((cameraA-this.a+.8)/Math.PI/2)*Math.PI*2)*4/Math.PI/2
+)*64;
+}
+}
+return enemy;
+}
+
+createRocket = function(x,y){
+rock = new Entity();
+rock.x = x; rock.y = y;
+rock.w = 8; rock.h = 8;
+rock.img.src = "missle.png";
+rock.imgX = 0; rock.imgY = 0;
+rock.imgW = 64; rock.imgH = 64;
+rock.dead = false; rock.f = 0;
+rock.size = 1.1;
+rock.firef = 0;
+this.get = function(player){
+if (hitTestRect(player,this)) {
+this.dead = true; this.imgX=64;
+}
+}
+return rock;
+}
+
+createStone = function(x,y){
+rock = new Entity();
+rock.x = x; rock.y = y;
+rock.w = 10; rock.h = 10;
+rock.img.src = "stone.png";
+rock.imgX = 0; rock.imgY = 0;
+rock.imgW = 64; rock.imgH = 64;
+rock.dead = false; rock.f = 0;
+rock.size = 1.1;
+rock.firef = 0;
+return rock;
+}
+
+winSound = new Audio();
+winSound.src = "won.wav";
+pickupSound = new Audio();
+pickupSound.src = "missle got.wav";
+room = undefined;
+bgImg = new Image(); bgImg.src = "bg.png";
+bgImg.src = "clouds test.png";
+cloudf = 0;
+audio = new Audio();
+audio.src = "the cherub king.wav";
+audio.volume = 0.3;
+volume = 0.3;
+//volume = 0;
+splosionSound = new Audio();
+splosionSound.src = "fire.wav";
+blank = false;
+draw = function(){
+if (mpress && !mwaspress){
+if (volume == 0) volume = .3;
+else volume = 0;
+}
+mwaspress = mpress;
+audio.volume = volume/4;
+splosionSound.volume = volume;
+if (interacted) audio.play();
+ctx.imageSmoothingEnabled=false;
+displayCtx.imageSmoothingEnabled=false;
+if (room != undefined){
+if (level < 6){
+room.update();
+rwaspress = rpress;
+while (cameraA > Math.PI*2) cameraA -= Math.PI*2;
+while (cameraA <= 0) cameraA += Math.PI*2;
+collideBlocks(this.player);
+room.playerEntity.x=room.player.x;
+room.playerEntity.y=room.player.y;
+angle = player.a;
+rsin = Math.sin(cameraA); 
+rcos = Math.cos(cameraA);
+ctx.globalAlpha = 1;
+size = Math.PI*2*c.width;
+if (level >= 15 || level <= 9){
+bgImg.src = "bg.png";
+imgY = 0;
+} else {
+bgImg.src = "clouds test.png";
+cloudf += .2;
+if (cloudf >= 5) cloudf = 0;
+imgY = Math.floor(cloudf)*100;
+}
+ctx.globalAlpha = 1;
+ctx.drawImage(bgImg,0,imgY,800,100,
+-cameraA*c.width,0,size,size/8);
+ctx.drawImage(bgImg,0,imgY,800,100,
+size-cameraA*c.width,0,size,size/8);
+ctx.fillStyle = "#222222";
+ctx.fillRect(0,c.height/2,c.width,c.height);
+drawFloor(room);		
+ctx.globalAlpha = 1;
+for (i = 0; i < room.entitys.length; i++)
+if (room.entitys[i]!=undefined) room.entitys[i].loop();
+drawWall(room.walls,room);
+ctx.fillStyle = "#f09090";
+ctx.globalAlpha = 1;
+ctx.fillStyle = "#202020";
+ctx.font = "20px Ariel";
+ctx.fillText(room.text,c.width/2-room.text.length*4.8+1,51);
+ctx.fillStyle = "#d0d0d0";
+ctx.fillText(room.text,c.width/2-room.text.length*4.8,50);
+ctx.drawImage(missleImg,0,0,64,64,-16,-18,49,49);
+ctx.fillStyle = "#f0f0f0";
+ctx.fillText("x",15,18);
+ctx.fillText(room.player.missles,27,20);
+}
+if (!blank){
+if (this.level >= 6){
+ctx.fillStyle = "#406050";
+ctx.fillRect(0,0,200,200);
+ctx.fillStyle = "#f0f0f0";
+ctx.fillText("Thanks for ",20,25);
+ctx.fillText("playing",27,50);
+ctx.fillText("Green Tea!",22,75);
+}
+displayCtx.drawImage(c,
+0,0,displayC.width,displayC.height);
+ctx.globalAlpha = 1;
+}
+}
+blank = false;
+setTimeout(draw,fps);
+}
+fps = 16;
+createRoom("Green Tea");
+//createRoom("level 5");
+level = 0;
+draw();
+// or ||
+
+</script>
+</body>
+</html>
+
+
+
