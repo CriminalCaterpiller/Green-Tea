@@ -817,6 +817,10 @@ for (b=0; b<room.blocks.length; b++){
 if (hitTestRect(this.fires[f],room.blocks[b]))
 this.fires[f].x=Infinity;
 }
+for (b=0; b<room.rocks.length; b++){
+if (hitTestRect(this.fires[f],room.rocks[b]))
+this.fires[f].x=Infinity;
+}
 this.fires[f].x+=this.fires[f].xVel;
 this.fires[f].y+=this.fires[f].yVel;
 }}
@@ -895,7 +899,7 @@ if (interacted) audio.play();
 ctx.imageSmoothingEnabled=false;
 displayCtx.imageSmoothingEnabled=false;
 if (room != undefined){
-if (level < 6){
+if (level < 9){
 room.update();
 rwaspress = rpress;
 while (cameraA > Math.PI*2) cameraA -= Math.PI*2;
@@ -942,7 +946,7 @@ ctx.fillText("x",15,18);
 ctx.fillText(room.player.missles,27,20);
 }
 if (!blank){
-if (this.level >= 6){
+if (this.level >= 9){
 ctx.fillStyle = "#406050";
 ctx.fillRect(0,0,200,200);
 ctx.fillStyle = "#f0f0f0";
@@ -955,12 +959,12 @@ displayCtx.drawImage(c,
 ctx.globalAlpha = 1;
 }
 }
+pickupSound.volume = volume;
 blank = false;
 setTimeout(draw,fps);
 }
 fps = 16;
 createRoom("Green Tea");
-//createRoom("level 5");
 level = 0;
 draw();
 // or ||

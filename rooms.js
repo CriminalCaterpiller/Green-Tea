@@ -581,6 +581,286 @@ this.player.dead=false; createRoom("level 5");}
 if (hitTestRect(this.player,this.exit)) nextLevel();
 }
 }
+else if (name == "level 6"){
+tr.interacted = false;
+cameraA = Math.PI/2+.01;
+tr.player = createPlayer();
+tr.player.x -= 60; tr.player.y -= 110;
+tr.player.x=75; tr.player.y=20;
+//cameraA += Math.PI/2;
+tr.playerEntity = new Entity();
+tr.playerEntity.img.src="player.png";
+tr.rocks = [
+createRock(110,45),createRock(110,60),
+createRock(110,75),createRock(2110,535)
+];
+tr.enemys = [
+createCenturion(10,60),
+];
+tr.enemys[0].a = Math.PI;
+tr.bomb = createBomb(Infinity,50);
+tr.exit = createExit(160,60);
+tr.rockets = [createRocket(-13,60),
+createRocket(512,122),createRocket(512,142)];
+tr.stones = [
+createStone(45,75),createStone(30,45),
+createStone(15,75),createStone(60,45),
+
+createStone(950,75),createStone(590,45),
+createStone(560,75),createStone(560,45),
+createStone(545,75),createStone(545,45),
+];
+tr.entitys = [
+tr.playerEntity,tr.bomb,tr.rocks[0],tr.rocks[1],tr.rocks[2],
+tr.enemys[0],tr.enemys[1],tr.enemys[2],tr.exit,
+tr.stones[0],tr.stones[1],tr.stones[2],tr.stones[3],
+tr.stones[4],tr.stones[5],tr.stones[6],tr.stones[7],
+tr.stones[8],tr.stones[9],
+tr.enemys[0].fires[0],tr.enemys[0].fires[1],tr.enemys[0].fires[2],
+tr.enemys[0].fires[3],tr.enemys[0].fires[4],tr.enemys[0].fires[5],
+tr.enemys[0].fires[6],tr.enemys[0].fires[7],tr.enemys[0].fires[8],
+tr.enemys[0].fires[9],
+tr.rockets[0],tr.rockets[1],tr.rockets[2]
+];
+tr.blocks = [
+{x:-33,y:-23,w:253,h:3},
+{x:-33,y:-23,w:88,h:62},
+{x:118,y:-23,w:130,h:62},
+{x:-33,y:3,w:3,h:193},
+{x:-33,y:82,w:253,h:13},
+{x:173,y:3,w:13,h:193},
+];
+tr.holes = [
+//{x:70,y:70,w:20,h:20}
+];
+createWalls(tr);
+tr.update = function(){	
+tr.entitys = [
+tr.playerEntity,tr.bomb,tr.rocks[0],tr.rocks[1],tr.rocks[2],
+tr.enemys[0],tr.enemys[1],tr.enemys[2],tr.exit,
+tr.stones[0],tr.stones[1],tr.stones[2],tr.stones[3],
+tr.stones[4],tr.stones[5],tr.stones[6],tr.stones[7],
+tr.stones[8],tr.stones[9],
+tr.enemys[0].fires[0],tr.enemys[0].fires[1],tr.enemys[0].fires[2],
+tr.enemys[0].fires[3],tr.enemys[0].fires[4],tr.enemys[0].fires[5],
+tr.enemys[0].fires[6],tr.enemys[0].fires[7],tr.enemys[0].fires[8],
+tr.enemys[0].fires[9],
+tr.rockets[0],tr.rockets[1],tr.rockets[2]
+];
+this.enemys[0].hit(this.player);
+//this.enemys[0].fires[0].x=80;
+//this.enemys[0].fires[0].y=80;
+for (m=0; m<this.rockets.length; m++){
+this.rockets[m].f+=.2; if (this.rockets[m].f>=2) this.rockets[m].f=0; 
+this.rockets[m].imgX=Math.floor(this.rockets[m].f)*64;
+if (hitTestRect(this.player,this.rockets[m]) && !this.rockets[m].dead){
+this.rockets[m].dead = true; this.player.missles++;
+this.rockets[m].imgY = 64; pickupSound.play();
+}
+}
+this.bombs = [this.bomb];
+this.showText();
+if (spacepress && !spacewaspress && 
+this.player.missles>0 && this.bomb.x == Infinity){
+this.player.missles--;
+this.bomb = createBomb(this.player.x,this.player.y);
+this.bomb.xVel = Math.cos(cameraA)*2; this.bomb.yVel= Math.sin(cameraA)*2;
+this.bomb.x+=this.bomb.xVel*5; this.bomb.y+=this.bomb.yVel*5;
+this.entitys[1] = this.bomb;
+}
+this.enemys[0].update(this);
+this.exit.update(this);
+this.bomb.update(this,[this.rocks[0],this.rocks[1],this.rocks[2],
+this.enemys[0]]);
+this.player.update(this);
+for (r=0; r<this.rocks.length; r++){
+collideRect(this.player,this.rocks[r]);
+this.rocks[r].update(this);
+}
+for (b=0; b<this.stones.length; b++) collideRect(this.player,this.stones[b]);
+if (rpress && !rwaspress) this.player.dead = true; rwaspress=rpress;
+if (this.player.dead) {
+this.player.dead=false; createRoom("level 6");}
+if (hitTestRect(this.player,this.exit)) nextLevel();
+}
+}
+else if (name == "level 7"){
+tr.interacted = false;
+cameraA = .01;
+tr.player = createPlayer();
+tr.player.x -= 110; tr.player.y -= 110;
+tr.playerEntity = new Entity();
+tr.playerEntity.img.src="player.png";
+tr.rocks = [
+createRock(140,34),
+createRock(125,34),
+createRock(110,34),  
+];
+tr.bomb = createBomb(Infinity,50);
+tr.exit = createExit(200,33);
+tr.rockets = [createRocket(120,80),
+createRocket(1212,122),createRocket(1212,142)];
+tr.stones = [
+createStone(140,45),createStone(125,45),createStone(110,45),
+];
+tr.entitys = [
+tr.playerEntity,tr.bomb,tr.rocks[0],tr.rocks[1],tr.rocks[2],
+tr.exit,tr.stones[0],tr.stones[1],tr.stones[2],
+tr.rockets[0],tr.rockets[1],tr.rockets[2]
+];
+tr.blocks = [
+{x:3,y:3,w:253,h:18},
+{x:3,y:3,w:13,h:193},
+{x:3,y:123,w:290,h:108},
+{x:143,y:43,w:1233,h:193},
+{x:233,y:3,w:13,h:193}
+];
+tr.holes = [
+//{x:70,y:70,w:20,h:20}
+];
+createWalls(tr);
+tr.update = function(){	
+for (m=0; m<this.rockets.length; m++){
+this.rockets[m].f+=.2; if (this.rockets[m].f>=2) this.rockets[m].f=0; 
+this.rockets[m].imgX=Math.floor(this.rockets[m].f)*64;
+if (hitTestRect(this.player,this.rockets[m]) && !this.rockets[m].dead){
+this.rockets[m].dead = true; this.player.missles++;
+this.rockets[m].imgY = 64; pickupSound.play();
+}
+}
+this.bombs = [this.bomb];
+this.showText();
+if (spacepress && !spacewaspress && 
+this.player.missles>0 && this.bomb.x == Infinity){
+this.player.missles--;
+this.bomb = createBomb(this.player.x,this.player.y);
+this.bomb.xVel = Math.cos(cameraA)*2; this.bomb.yVel= Math.sin(cameraA)*2;
+this.bomb.x+=this.bomb.xVel*5; this.bomb.y+=this.bomb.yVel*5;
+this.entitys[1] = this.bomb;
+}
+this.exit.update(this);
+this.bomb.update(this,[this.rocks[0],this.rocks[1],tr.rocks[2]]);
+this.player.update(this);
+for (r=0; r<this.rocks.length; r++){
+collideRect(this.player,this.rocks[r]);
+this.rocks[r].update(this);
+}
+for (b=0; b<this.stones.length; b++) collideRect(this.player,this.stones[b]);
+if (rpress && !rwaspress) this.player.dead = true; rwaspress=rpress;
+if (this.player.dead) {
+this.player.dead=false; createRoom("level 7");}
+if (hitTestRect(this.player,this.exit)) nextLevel();
+}
+}
+else if (name == "level 8"){
+tr.interacted = false;
+cameraA = Math.PI/2+.01;
+tr.player = createPlayer();
+tr.player.x -= 60; tr.player.y -= 110;
+tr.player.x=75; tr.player.y=20;
+//cameraA += Math.PI/2;
+tr.playerEntity = new Entity();
+tr.playerEntity.img.src="player.png";
+tr.rocks = [
+createRock(110,45),createRock(110,60),
+createRock(110,75),
+createRock(20,60),
+createRock(50,60)
+];
+tr.enemys = [
+createCenturion(140,60),
+];
+tr.enemys[0].a = 0;
+tr.bomb = createBomb(Infinity,50);
+tr.exit = createExit(0,60);
+tr.rockets = [createRocket(65,0),
+createRocket(142,75),createRocket(142,45)];
+tr.stones = [
+createStone(645,75),createStone(630,45),
+createStone(615,75),createStone(660,45),
+
+createStone(950,75),createStone(590,45),
+createStone(560,75),createStone(560,45),
+createStone(545,75),createStone(545,45),
+];
+tr.entitys = [
+tr.playerEntity,tr.bomb,tr.rocks[0],tr.rocks[1],tr.rocks[2],
+tr.rocks[3],tr.rocks[4],
+tr.enemys[0],tr.enemys[1],tr.enemys[2],tr.exit,
+tr.stones[0],tr.stones[1],tr.stones[2],tr.stones[3],
+tr.stones[4],tr.stones[5],tr.stones[6],tr.stones[7],
+tr.stones[8],tr.stones[9],
+tr.enemys[0].fires[0],tr.enemys[0].fires[1],tr.enemys[0].fires[2],
+tr.enemys[0].fires[3],tr.enemys[0].fires[4],tr.enemys[0].fires[5],
+tr.enemys[0].fires[6],tr.enemys[0].fires[7],tr.enemys[0].fires[8],
+tr.enemys[0].fires[9],
+tr.rockets[0],tr.rockets[1],tr.rockets[2]
+];
+tr.blocks = [
+{x:-33,y:-23,w:253,h:3},
+{x:-33,y:-23,w:88,h:74},
+{x:-33,y:68,w:88,h:62},
+{x:118,y:-23,w:130,h:62},
+{x:-33,y:3,w:3,h:193},
+{x:-33,y:82,w:253,h:13},
+{x:173,y:3,w:13,h:193},
+];
+tr.holes = [
+//{x:70,y:70,w:20,h:20}
+];
+createWalls(tr);
+tr.update = function(){	
+tr.entitys = [
+tr.playerEntity,tr.bomb,tr.rocks[0],tr.rocks[1],tr.rocks[2],
+tr.rocks[3],tr.rocks[4],
+tr.enemys[0],tr.enemys[1],tr.enemys[2],tr.exit,
+tr.stones[0],tr.stones[1],tr.stones[2],tr.stones[3],
+tr.stones[4],tr.stones[5],tr.stones[6],tr.stones[7],
+tr.stones[8],tr.stones[9],
+tr.enemys[0].fires[0],tr.enemys[0].fires[1],tr.enemys[0].fires[2],
+tr.enemys[0].fires[3],tr.enemys[0].fires[4],tr.enemys[0].fires[5],
+tr.enemys[0].fires[6],tr.enemys[0].fires[7],tr.enemys[0].fires[8],
+tr.enemys[0].fires[9],
+tr.rockets[0],tr.rockets[1],tr.rockets[2]
+];
+this.enemys[0].hit(this.player);
+//this.enemys[0].fires[0].x=80;
+//this.enemys[0].fires[0].y=80;
+for (m=0; m<this.rockets.length; m++){
+this.rockets[m].f+=.2; if (this.rockets[m].f>=2) this.rockets[m].f=0; 
+this.rockets[m].imgX=Math.floor(this.rockets[m].f)*64;
+if (hitTestRect(this.player,this.rockets[m]) && !this.rockets[m].dead){
+this.rockets[m].dead = true; this.player.missles++;
+this.rockets[m].imgY = 64; pickupSound.play();
+}
+}
+this.bombs = [this.bomb];
+this.showText();
+if (spacepress && !spacewaspress && 
+this.player.missles>0 && this.bomb.x == Infinity){
+this.player.missles--;
+this.bomb = createBomb(this.player.x,this.player.y);
+this.bomb.xVel = Math.cos(cameraA)*2; this.bomb.yVel= Math.sin(cameraA)*2;
+this.bomb.x+=this.bomb.xVel*5; this.bomb.y+=this.bomb.yVel*5;
+this.entitys[1] = this.bomb;
+}
+this.enemys[0].update(this);
+this.exit.update(this);
+this.bomb.update(this,[this.rocks[0],this.rocks[1],this.rocks[2],
+tr.rocks[3],tr.rocks[4],
+this.enemys[0]]);
+this.player.update(this);
+for (r=0; r<this.rocks.length; r++){
+collideRect(this.player,this.rocks[r]);
+this.rocks[r].update(this);
+}
+for (b=0; b<this.stones.length; b++) collideRect(this.player,this.stones[b]);
+if (rpress && !rwaspress) this.player.dead = true; rwaspress=rpress;
+if (this.player.dead) {
+this.player.dead=false; createRoom("level 8");}
+if (hitTestRect(this.player,this.exit)) nextLevel();
+}
+}
 room = tr;
 wpress=false; spress=false; apress=false; dpress=false; rpress=false;
 for (faxzc=0; faxzc<50; faxzc++) room.update();
